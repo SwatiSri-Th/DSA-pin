@@ -1,0 +1,183 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Structure to represent non-zero elements in the sparse matrix
+typedef struct
+{
+    int row;
+    int col;
+    int value;
+} SparseElement;
+
+// Structure to represent the sparse matrix
+typedef struct
+{
+    int rows;
+    int cols;
+    int num_elements;
+    SparseElement *elements;
+} SparseMatrix;
+
+// Function to initialize an empty sparse matrix
+SparseMatrix *initSparseMatrix(int rows, int cols)
+{
+    SparseMatrix *matrix = (SparseMatrix *)malloc(sizeof(SparseMatrix));
+    matrix->rows = rows;
+    matrix->cols = cols;
+    matrix->num_elements = 0;
+    matrix->elements = NULL;
+    return matrix;
+}
+
+// Function to insert an element into the sparse matrix
+void insertElement(SparseMatrix *matrix, int row, int col, int value)
+{
+    if (row < 0 || row >= matrix->rows || col < 0 || col >= matrix->cols)
+    {
+        printf("Invalid row or column index\n");
+        return;
+    }
+
+    if (value == 0)
+    {
+        return; // Don't insert zero values
+    }
+
+    matrix->num_elements++;
+    matrix->elements = (SparseElement *)realloc(matrix->elements, matrix->num_elements * sizeof(SparseElement));
+    matrix->elements[matrix->num_elements - 1].row = row;
+    matrix->elements[matrix->num_elements - 1].col = col;
+    matrix->elements[matrix->num_elements - 1].value = value;
+}
+
+// Function to sort the sparse matrix based on row and column
+void sortSparseMatrix(SparseMatrix *matrix)
+{
+    // Sort elements using any sorting algorithm (e.g., bubble sort, insertion sort)
+    // For simplicity, I'll use a basic bubble sort here
+    for (int i = 0; i < matrix->num_elements - 1; i++)
+    {
+        for (int j = 0; j < matrix->num_elements - i - 1; j++)
+        {
+            if (matrix->elements[j].row > matrix->elements[j + 1].row ||
+                (matrix->elements[j].row == matrix->elements[j + 1].row && matrix->elements[j].col > matrix->elements[j + 1].col))
+            {
+                // Swap elements
+                SparseElement temp = matrix->elements[j];
+                matrix->elements[j] = matrix->elements[j + 1];
+                matrix->elements[j + 1] = temp;
+            }
+        }
+    }
+}
+
+// Function to add two sparse matrices and return the result
+SparseMatrix *addSparseMatrices(SparseMatrix *matrix1, SparseMatrix *matrix2)
+{
+    if (matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols)
+    {
+        printf("Matrix dimensions do not match\n");
+        return NULL;
+    }
+
+    SparseMatrix *result = initSparseMatrix(matrix1->rows, matrix1->cols);
+
+    // Perform element-wise addition
+    int i = 0, j = 0;
+    while (i < matrix1->num_elements && j < matrix2->num_elements)
+    {
+        if (matrix1->elements[i].row < matrix2->elements[j].row ||
+            (matrix1->elements[i].row == matrix2->elements[j].row && matrix1->elements[i].col < matrix2->elements[j].col))
+        {
+            insertElement(result, matrix1->elements[i].row, matrix1->elements[i].col, matrix1->elements[i].value);
+            i++;
+        }
+        else if (matrix1->elements[i].row > matrix2->elements[j].row ||
+                 (matrix1->elements[i].row == matrix2->elements[j].row && matrix1->elements[i].col > matrix2->elements[j].col))
+        {
+            insertElement(result, matrix2->elements[j].row, matrix2->elements[j].col, matrix2->elements[j].value);
+            j++;
+        }
+        else
+        {
+            int sum = matrix1->elements[i].value + matrix2->elements[j].value;
+            insertElement(result, matrix1->elements[i].row, matrix1->elements[i].col, sum);
+            i++;
+            j++;
+        }
+    }
+
+    // Insert any remaining elements from both matrices
+    while (i < matrix1->num_elements)
+    {
+        insertElement(result, matrix1->elements[i].row, matrix1->elements[i].col, matrix1->elements[i].value);
+        i++;
+    }
+    while (j < matrix2->num_elements)
+    {
+        insertElement(result, matrix2->elements[j].row, matrix2->elements[j].col, matrix2->elements[j].value);
+        j++;
+    }
+
+    return result;
+}
+
+// Function to transpose a sparse matrix
+SparseMatrix *transposeSparseMatrix(SparseMatrix *matrix)
+{
+    SparseMatrix *result = initSparseMatrix(matrix->cols, matrix->rows);
+
+    for (int i = 0; i < matrix->num_elements; i++)
+    {
+        insertElement(result, matrix->elements[i].col, matrix->elements[i].row, matrix->elements[i].value);
+    }
+
+    return result;
+}
+
+// Function to print the sparse matrix
+void printSparseMatrix(SparseMatrix *matrix)
+{
+    for (int i = 0; i < matrix->num_elements; i++)
+    {
+        printf("(%d, %d) -> %d\n", matrix->elements[i].row, matrix->elements[i].col, matrix->elements[i].value);
+    }
+}
+
+int main()
+{
+    // Example usage
+    SparseMatrix *matrix1 = initSparseMatrix(3, 3);
+    insertElement(matrix1, 0, 1, 2);
+    insertElement(matrix1, 1, 2, 4);
+
+    SparseMatrix *matrix2 = initSparseMatrix(3, 3);
+    insertElement(matrix2, 0, 1, 1);
+    insertElement(matrix2, 2, 2, 3);
+
+    printf("Matrix 1:\n");
+    printSparseMatrix(matrix1);
+
+    printf("Matrix 2:\n");
+    printSparseMatrix(matrix2);
+
+    SparseMatrix *sum_matrix = addSparseMatrices(matrix1, matrix2);
+    printf("Sum Matrix:\n");
+    printSparseMatrix(sum_matrix);
+
+    SparseMatrix *transposed_matrix = transposeSparseMatrix(matrix1);
+    printf("Transposed Matrix:\n");
+    printSparseMatrix(transposed_matrix);
+
+    // Clean up
+    free(matrix1->elements);
+    free(matrix1);
+    free(matrix2->elements);
+    free(matrix2);
+    free(sum_matrix->elements);
+    free(sum_matrix);
+    free(transposed_matrix->elements);
+    free(transposed_matrix);
+
+    return 0;
+}
